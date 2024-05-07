@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Appointment Booking</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            function fetchAvailableSlots(selectedDate) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'api/get_available_slots.php',
+                    data: { date: selectedDate },
+
+                    success: function (response) {
+                        console.log(response);
+                        var slots = JSON.parse(response);
+                        $('#availableSlots').empty();
+                        $.each(slots, function (index, slot) {
+                            var option = $('<option>', { value: slot, text: slot });
+                            $('#availableSlots').append(option);
+                        });
+                    },
+
+                    error: function (xhr, status, error) {
+                            var errorMessage = "An error occurred while fetching booking slots." + "\n";
+                            var jsonResponse = JSON.parse(xhr.responseText);
+                            var failureMessage = jsonResponse.error;
+                            if (jsonResponse.details) {
+                                failureMessage += "\n" + jsonResponse.details.join("\n");
+                            }
+                            alert(errorMessage + failureMessage);
+                        },
+                });
+            }
+
+            var today = new Date();
+            var dd = String(today.getDate()).padStart(2, '0');
+            var mm = String(today.getMonth() + 1).padStart(2, '0');
+            var yyyy = today.getFullYear();
+            today = yyyy + '-' + mm + '-' + dd;
+
+            $('#date').val(today);
+
+            fetchAvailableSlots(today);
+
+            $('#date').change(function () {
+                var selectedDate = $(this).val();
+                fetchAvailableSlots(selectedDate);
+            });
+
+            $('#book-appointment').click(function () {
+                var selectedSlot = $('#availableSlots').val();
+                var selectedDate = $('#date').val();
+                var firstName = $('#firstName').val();
+                var lastName = $('#lastName').val();
+                var email = $('#email').val();
+                var contactNumber = $('#contactNumber').val();
+                var subject = $('#subject').val();
+                var location = $('#location').val();
+                var comments = $('#comments').val();
+
+                if (selectedSlot && selectedDate && firstName && lastName && email && contactNumber && subject) {
+                    $.ajax({
+                        type: 'POST',
+                        url: 'api/book_slot.php',
+                        data: {
+                            date: selectedDate,
+                            slot: selectedSlot,
+                            first_name: firstName,
+                            last_name: lastName,
+                            email: email,
+                            contact_number: contactNumber,
+                            subject: subject,
+                            location: location,
+                            comments: comments
+                        },
+                        success: function (response) {
+                            var jsonResponse = JSON.parse(response);
+                            var successMessage = jsonResponse.message;
+                            alert(successMessage);
+                        },
+                        error: function (xhr, status, error) {
+                            var errorMessage = "An error occurred while booking the appointment." + "\n";
+                            var jsonResponse = JSON.parse(xhr.responseText);
+                            var failureMessage = jsonResponse.error;
+                            if (jsonResponse.details) {
+                                failureMessage += "\n" + jsonResponse.details.join("\n");
+                            }
+                            alert(errorMessage + failureMessage);
+                        },
+                        complete: function () {
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    alert("Please fill in all fields before booking.");
+                }
+
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <h2>Select Date:</h2>
+    <input type="date" id="date" name="date">
+
+    <h2>Available Slots:</h2>
+    <select id="availableSlots">
+    </select>
+
+    <h2>Personal Information:</h2>
+    <input type="text" id="firstName" name="firstName" placeholder="First Name">
+    <input type="text" id="lastName" name="lastName" placeholder="Last Name">
+    <input type="email" id="email" name="email" placeholder="Email">
+    <input type="text" id="contactNumber" name="contactNumber" placeholder="Contact Number">
+
+    <h2>Appointment Details:</h2>
+    <input type="text" id="subject" name="subject" placeholder="Subject">
+    <input type="text" id="location" name="location" placeholder="Location">
+    <div>
+        <textarea id="comments" name="comments" rows="4" cols="50" placeholder="Comments"></textarea>
+    </div>
+    <div>
+        <button id="book-appointment">Book</button>
+    </div>
+</body>
+
+</html>
